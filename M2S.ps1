@@ -4,7 +4,7 @@ $currentLocation = Split-Path -Parent $MyInvocation.MyCommand.Definition
 # load required assemblies
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web.Security")
 [System.Reflection.Assembly]::LoadWithPartialName("System.Web.HttpUtility")
-[System.Reflection.Assembly]::LoadFile("$currentLocation\AE.Net.Mail.dll")
+#[System.Reflection.Assembly]::LoadFile("$currentLocation\AE.Net.Mail.dll")
 
 Add-Type -AssemblyName System.Web;
 
@@ -148,7 +148,7 @@ Function Send-SMS_BySMSGator {
     
     [string]$baseurl  = "http://smsgator.com/bulksms"
     
-    $Recipients | ForEach{
+    $Recipients | % {
         $Recipient = $_
         If($Recipient.Length -gt 0){
             $Parameters = @{"email"=$Account;"password"=$Pass; "type"="0"; "dlr"="0"; "destination"=$Recipient; "sender"=$Sender; "message"=$Body;}
@@ -190,6 +190,8 @@ Function Run-Main {
     $preferredProvider      = $config.PreferedProvider;
     $smsUsername            = ($config.SMSProviders | Select -ExpandProperty $preferredProvider).SmsGatewayUser
     $smsPassword            = ($config.SMSProviders | Select -ExpandProperty $preferredProvider).SmsGatewayPassword
+    $mdnNumberPattern       = [regex]$config.MDNSearchRegex;
+    $mdnNumberReplacement   = $config.MDNRegexReplacement;
         
     $securePassword         = $password | ConvertTo-SecureString -AsPlainText -Force;
     $MyCredential           = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $username, $securePassword
@@ -197,13 +199,22 @@ Function Run-Main {
     Invoke-GmailSession -Credential $MyCredential -ScriptBlock {
         Param($session)
                 
-        #$inbox = $session | Get-Mailbox
-        $headings = $session | Get-Mailbox | Get-Message -From $emailSender -Prefetch
+        $messages = $session | Get-Mailbox | Get-Message -Prefetch -On "2016-03-19 00:00" -From $emailSender -Unread
         
-        $headings | % {   
+        $messages | % {   
             
                 # Convert the body html to plain text.
                 $body = Html-ToText -html $_.Body
+                
+                $pattern = "$mdnNumberPattern";
+                
+                # Get the recipient number out of the body.
+                if($pattern.ToString().Length -gt 0) {
+                    $mdnMatches = $mdnNumberPattern.Matches($body);
+                    $mdnMatches | % {
+                        $smsRecipients += $_.Result($mdnNumberReplacement);
+                    }
+                }
                                 
                 # Get only the portion of the body that is needed
                 $thisMatch = $contentReg.Match($body);
@@ -227,8 +238,8 @@ Function Run-Main {
                                 Update-Message -Message $_ -Read -Session $session
                             } -OnFail {
                                 Write-ToFile ( "Something went wrong");
-                            }#>
-                        }
+                            }
+                        }#>
                     }
                 }
             }
