@@ -199,12 +199,13 @@ Function Run-Main {
     Invoke-GmailSession -Credential $MyCredential -ScriptBlock {
         Param($session)
                 
-        $messages = $session | Get-Mailbox | Get-Message -Prefetch -On "2016-03-19 00:00" -From $emailSender -Unread
+        $messages = $session | Get-Mailbox | Get-Message -Prefetch -After "2016-03-19 00:00:00" -From $emailSender -Unread
         
         $messages | % {   
             
                 # Convert the body html to plain text.
-                $body = Html-ToText -html $_.Body
+                $currentMessage = $_;
+                $body = Html-ToText -html $currentMessage.Body
                 
                 $pattern = "$mdnNumberPattern";
                 
@@ -227,7 +228,7 @@ Function Run-Main {
                             Send-SMS_BySMSTorrent -Sender $smsSenderId -Recipients $smsRecipients -Body $body -Account $smsUsername -Pass $smsPassword -OnSuccess {
                                 
                                 # Mark the email as read.
-                                Update-Message -Message $_ -Read -Session $session
+                                Update-Message -Message $currentMessage -Read -Session $session
                             } -OnFail {
                                 Write-ToFile ( "Something went wrong");
                             }
@@ -235,7 +236,7 @@ Function Run-Main {
                             Send-SMS_BySMSGator -Sender $smsSenderId -Recipients $smsRecipients -Body $body -Account $smsUsername -Pass $smsPassword -OnSuccess {
                                 
                                 # Mark the email as read.
-                                Update-Message -Message $_ -Read -Session $session
+                                Update-Message -Message $currentMessage -Read -Session $session
                             } -OnFail {
                                 Write-ToFile ( "Something went wrong");
                             }
