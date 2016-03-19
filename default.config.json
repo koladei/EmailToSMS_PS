@@ -1,0 +1,24 @@
+{
+    "Recipients": [],
+    "ImapServer": "imap.gmail.com",
+    "Username": "account@gmail.com",
+    "Password": "Gmail password",
+    "Folder": "INBOX",
+    "Port": "993",
+    "IsSSL": true,
+    "EmailSender":"sender@source.domain",
+    "Regex":"Regularar expression",
+    "RegexReplacement": "$2\n$3",
+    "PreferedProvider": "SMSGator",
+    "SMSProviders":{
+        "SMSTorrent":{
+            "SmsGatewayUser":"cradlesoft",
+            "SmsGatewayPassword":"sms!p@ss"
+        },
+        "SMSGator":{
+            "SmsGatewayUser":"sylvesterc@vestude.com",
+            "SmsGatewayPassword":"shemada2016"
+        }
+    },
+    "SmsSenderId": "VESTUDE"
+}
